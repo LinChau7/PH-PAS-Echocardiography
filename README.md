@@ -1,138 +1,179 @@
-PH-PAS-Echocardiography
-PH-PAS is a guideline-based pulmonary hypertension (PH) probability assessment framework for multiview transthoracic echocardiography (TTE) videos. The public code in this repository implements the core training components used to learn low-, intermediate-, and high-probability PH representations from routine TTE videos.
-Overview
-The released implementation includes:
-A 3D ResNet-18 video encoder initialized with Kinetics-400 pretrained weights
-Echocardiographic view embeddings
-Imaging-modality embeddings
-Masked-report-assisted video-text contrastive learning
-A three-class classifier for low, intermediate, and high echocardiographic PH probability
-Structured clinical variables are not used in the released PH-PAS model.
-Model inputs
-Training
-During training, the model uses:
-TTE videos
-Echocardiographic view information
-Imaging-modality information
-De-identified and masked echocardiographic reports for auxiliary video-text contrastive learning
-The text branch is used only to improve representation learning during training.
-Inference
-During inference, PH-PAS uses only:
-TTE videos
-Echocardiographic view information
-Imaging-modality information
-Echocardiographic reports and structured clinical variables are not required for inference.
-Echocardiographic inputs
-The study framework uses standard multiview TTE videos, including:
-Parasternal long-axis (PLAX)
-Parasternal short-axis (PSAX)
-Apical four-chamber (A4C)
-Supported imaging modes include:
-B-mode
-Colour Doppler flow imaging (CDFI)
-Each eligible video is uniformly sampled to 20 frames and resized to 224 × 224 pixels before model input.
-PH probability classes
-The classifier outputs three echocardiographic PH probability categories:
-`0` = Low
-`1` = Intermediate
-`2` = High
-These categories correspond to guideline-based echocardiographic PH probability stratification.
-Masked-report-assisted contrastive learning
-Echocardiographic reports are used only during training as an auxiliary source of semantic supervision.
-Before text encoding, reports should be:
-De-identified
-Masked to remove direct PH diagnosis statements
-Masked to remove explicit PH probability labels
-Masked to remove TRV values and estimated pulmonary artery pressures
-Masked to remove other information that could directly reveal the target label
-Masked reports are encoded using `Chinese-BERT-wwm-ext`. Video and text representations are projected into a shared 512-dimensional embedding space and optimized using a symmetric video-to-text and text-to-video contrastive objective.
-The training objective is:
+# PH-PAS-Echocardiography
+
+## AI-driven Pulmonary Hypertension Probability Assessment using Multiview Echocardiography
+
+This repository contains the PyTorch implementation of PH-PAS, an AI framework for guideline-based pulmonary hypertension (PH) probability assessment from multiview transthoracic echocardiography (TTE) videos.
+
+## 📋 Overview
+
+PH-PAS integrates:
+
+* **Echocardiographic Videos:** Spatio-temporal feature extraction using 3D ResNet-18.
+* **View and Modality Embeddings:** Echocardiographic view and imaging modality information are incorporated into the video representation.
+* **Vision-Language Pretraining:** Masked echocardiographic reports are used during training for video-text contrastive learning.
+
+During inference, the model requires only TTE videos together with view and modality information.
+
+## ⚙️ Project Structure
+
 ```text
-L\_total = L\_con + 3.74 × L\_cls
-```
-where:
-`L\_con` is the symmetric video-text contrastive loss
-`L\_cls` is the three-class cross-entropy classification loss
-The contrastive temperature is set to `0.07`.
-Public code scope
-This repository intentionally provides the core model-training implementation only.
-Included:
-Video encoder
-View embedding
-Modality embedding
-Text encoder for masked-report contrastive learning
-Three-class PH probability classifier
-Training loop and optimization settings
-Not included:
-Patient data
-Original TTE videos
-Private preprocessing pipelines
-Model weights
-RHC validation data
-Reader-study data
-Repository structure
-```text
-PH-PAS-Echocardiography/
-├── README.md
+
 ├── ph\_pas\_public\_train.py
+
 ├── requirements.txt
-└── .gitignore
+
+├── .gitignore
+
+└── README.md
+
 ```
-Expected CSV format
-The public training script expects training and development CSV files derived from the model-development cohort.
-Required columns:
-Column	Description
-`VideoPath`	Path to the echocardiographic video
-`PH\_label`	`0=Low`, `1=Intermediate`, `2=High`
-`View`	Echocardiographic view label
-`Modality`	Imaging-modality label
-`masked\_report`	De-identified and masked echocardiographic report
-Internal-test and external-validation datasets should not be used for model training, model selection, or hyperparameter optimization.
-Installation
-Install the required Python packages:
+
+## 🛠️ Installation
+
+### Prerequisites
+
+* Python 3.8+
+* CUDA-enabled GPU recommended
+
+Install dependencies:
+
 ```bash
+
 pip install -r requirements.txt
+
 ```
-Training example
+
+Main libraries include:
+
+* `torch`, `torchvision`
+* `decord`
+* `transformers`
+* `numpy`, `pandas`
+* `scikit-learn`
+* `Pillow`
+* `tqdm`
+
+## 📊 Data Preparation
+
+The training script requires CSV files linking echocardiographic videos to PH probability labels and masked echocardiographic reports.
+
+### CSV Format
+
+| Column          | Description                                       |
+| --------------- | ------------------------------------------------- |
+| `VideoPath`     | Path to the echocardiographic video               |
+| `PH\_label`      | 0 = Low, 1 = Intermediate, 2 = High               |
+| `View`          | Echocardiographic view                            |
+| `Modality`      | Imaging modality                                  |
+| `masked\_report` | De-identified and masked echocardiographic report |
+
+The model uses standard multiview TTE videos, including:
+
+* Parasternal long-axis (PLAX)
+* Parasternal short-axis (PSAX)
+* Apical four-chamber (A4C)
+
+Imaging modalities include:
+
+* B-mode
+* Colour Doppler flow imaging (CDFI)
+
+Each video is uniformly sampled to 20 frames and resized to 224 × 224 pixels.
+
+## 🚀 Usage
+
+### Training
+
 ```bash
+
 python ph\_pas\_public\_train.py \\
-  --train\_csv train.csv \\
-  --dev\_csv dev.csv \\
-  --output\_dir checkpoints
+
+&#x20; --train\_csv train.csv \\
+
+&#x20; --dev\_csv dev.csv \\
+
+&#x20; --output\_dir checkpoints
+
 ```
+
 Optional arguments include:
+
 ```text
---text\_model
---epochs
---batch\_size
---num\_workers
---seed
+
+\--text\_model
+
+\--epochs
+
+\--batch\_size
+
+\--num\_workers
+
+\--seed
+
 ```
+
 The default text encoder is:
+
 ```text
+
 hfl/chinese-bert-wwm-ext
+
 ```
-Main training settings
-The public script follows the principal training settings used in the study:
-Video backbone: 3D ResNet-18
-Pretraining: Kinetics-400
-Frames per video: 20
-Input size: 224 × 224
-Projection dimension: 512
-Batch size: 16
-Optimizer: AdamW
-Initial learning rate: `1e-4`
-Weight decay: `1e-2`
-Contrastive temperature: `0.07`
-Classification-loss weight: `3.74`
-Learning-rate scheduler: ReduceLROnPlateau
-Scheduler factor: `0.5`
-Scheduler patience: `3`
-Data availability
-The clinical and echocardiographic datasets used in the study are not publicly distributed in this repository because they contain protected clinical and imaging information and are subject to institutional and ethical restrictions.
-Code availability
-This repository provides a simplified research implementation of the core PH-PAS training framework described in the associated manuscript. Certain study-specific data-processing, patient-level aggregation, validation, and analysis components are not included.
-Citation
+
+## 🧠 Model Architecture
+
+The framework consists of two main encoders:
+
+### Video Encoder
+
+A 3D ResNet-18 pretrained on Kinetics-400 processes 20-frame TTE video clips to extract spatio-temporal features.
+
+Echocardiographic **view embeddings** and **modality embeddings** are combined with the video representation before classification.
+
+### Text Encoder
+
+A BERT model encodes de-identified and masked echocardiographic reports.
+
+The text encoder is used only during training to align video representations with semantic information through video-text contrastive learning.
+
+### Classification
+
+The model predicts three echocardiographic PH probability categories:
+
+* Low
+* Intermediate
+* High
+
+The training objective is:
+
+```text
+
+L\_total = L\_con + 3.74 × L\_cls
+
+```
+
+where `L\_con` denotes the symmetric video-text contrastive loss and `L\_cls` denotes the three-class cross-entropy classification loss.
+
+The contrastive temperature is set to `0.07`.
+
+### Inference
+
+During inference, the text encoder is removed.
+
+PH-PAS uses only:
+
+* TTE videos
+* View information
+* Modality information
+
+## 📝 Citation
+
 Citation information will be added after publication.
-Disclaimer
-This code is provided for research purposes only. It is not intended for direct clinical diagnosis, treatment decisions, or independent determination of right heart catheterization indications.
+
+## 📧 Contact
+
+For questions regarding the code, please contact:
+
+Zhihan Yan: [yanzhihanwz@163.com](mailto:yanzhihanwz@163.com)
+
+Dinggang Shen: [dgshen@shanghaitech.edu.cn](mailto:dgshen@shanghaitech.edu.cn)
