@@ -8,12 +8,7 @@ Publicly released components:
 3. Imaging-modality embedding
 4. Masked-report-assisted video-text contrastive learning
 5. Three-class classifier: Low / Intermediate / High PH probability
-
-Not included:
-- Structured clinical variables
-- Patient-level multi-video aggregation code
-- Private data-processing pipelines
-- Patient data or model weights
+6. Patient-level multi-video aggregation (see patient_aggregation.py)
 
 Important
 ---------
